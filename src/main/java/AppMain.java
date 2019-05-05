@@ -7,7 +7,8 @@ public class AppMain {
         // 定义 job 实例
         /**
          * JobDataMap 可以用来保存任何数量(可序列化)的数据对象，并且它执行时将会把自己提供给作业实例。它是 Java Map 接口
-         * 的一个实现，提供了一些用于存储和检索原始类型数据的便利方法。
+         * 的一个实现，提供了一些用于存储和检索原始类型数据的便利方法。又称为作业的状态数据。
+         *
          */
         JobDetail job = JobBuilder.newJob(MyJob.class)
                 .withIdentity("job1","group1")
@@ -20,9 +21,11 @@ public class AppMain {
          * 而 trigger 是一种特殊的存储过程，因为它是依托于事件，而自动触发执行的。
          */
         /**
-         * 当作业(job) 的触发器(trigger) 触发时(startNow)，execute()方法由一个调度程序的工作线程调用。传递给该方法的
-         * JobExecutionContext 对象提供了有关其“运行时”环境信息的作业实例（包括执行它的调度程序的句柄、触发执行的触
-         * 发器的句柄、作业的 JobDetail 对象和其他一些项）。
+         * 当作业(job) 的触发器(trigger) 触发时(startNow)，JobDetail(实例定义)将被加载，并且它引用的作业类通过调度程序中配置
+         * 的JobFactory实例化。默认的 JobFactory 只调用作业类上的 newInstance()，然后尝试在类上调用 setter 方法来匹配 JobDataMap
+         * 中的密钥名（也可以创建自己的 JobFactory实现来完成一些事情，比如让应用程序的 IoC 或 DI容器生成/初始化作业实例）。
+         * execute()方法由一个调度程序的工作线程调用。传递给该方法的 JobExecutionContext 对象提供了有关其“运行时”环境信息的
+         * 作业实例（包括执行它的调度程序的句柄、触发执行的触发器的句柄、作业的 JobDetail 对象和其他一些项）。
          *
          * JobDetail 对象是由 Quartz 客户机(即本程序)在任务添加到调度器时创建的。它包含作业的各种属性设置，以及 JobDataMap
          * 它用于存储作业类的给定实例的状态信息。它本质上就是作业实例的定义。
@@ -62,17 +65,13 @@ public class AppMain {
              * 调度程序接口，就可以使用添加、删除和列出作业和触发器，并执行其他与调度相关的操作(例如暂停触发器)。但是
              * 调度器实际上不会在任何触发器(执行作业)上起作用，直到它从 start() 方法开始。
              *
-             * 当调度程序执行任务时，每个(以及每个)时间都在调用它的 execute() 方法，并在调用之前都创建一个作业类（MyJob）
-             * 的新实例。当执行完成时，对作业类实例的引用被删除，然后实例被垃圾收集。
-             * 这种行为的一个分支是，作业必须有一个无参数的构造函数(当使用默认的 JobFactory 实现时)。
-             * 另一个分支是，在作业类上定义状态数据字段是没有意义的，因为它们的值不会在作业执行之间保留。
-             *
              * 而为一个作业实例提供属性或配置，并在执行过程中记录工作状态，这就要用到 JobDataMap，它是 JobDetail 对象的一部分。
              *
              */
             Scheduler scheduler = StdSchedulerFactory.getDefaultScheduler();
             scheduler.start();
             scheduler.scheduleJob(job,trigger);
+
         } catch (SchedulerException e) {
             e.printStackTrace();
             System.out.println("========= error ============");
